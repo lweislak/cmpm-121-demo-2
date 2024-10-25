@@ -32,55 +32,59 @@ const redoButton = document.createElement("button");
 redoButton.innerText = "Redo";
 app.append(redoButton);
 
-let isDrawing: boolean = false;
-let x: number = 0;
+let isDrawing: boolean = false; //Check if canvas is being drawn on
+let x: number = 0; //x and y mouse pointer coordinates
 let y: number = 0;
 
+const lines: {x:number, y:number}[][] = []; //Lines to be drawn
+const redoLines:{x:number, y:number}[][] = []; //Lines that have been undone
+let currLine: {x:number, y:number}[] = []; //Current line
 
-//Observer that will clear and redraw lines
-//Helpful code: https://dev.to/parenttobias/a-simple-observer-in-vanilla-javascript-1m80
-const Observable = (points: number[][]) => {
-  const mousePoints: number[][] = points;
-  const update = (newPoints:number[]) =>
-    mousePoints.push(newPoints);
-  return {
-    get mousePoints() {return mousePoints;},
-    update
-  }
-};
-const observer = Observable([]); //Start with no points
+
 
 //Event that checks for a change in the drawing
 const drawingChanged = new Event("drawing-changed");
 canvas.addEventListener("drawing-changed", () => {
-  ctx.beginPath();
-  ctx.moveTo(x, y); //Previous location
-  const lastElem: number = observer.mousePoints.length - 1;
-  ctx.lineTo(observer.mousePoints[lastElem][0], observer.mousePoints[lastElem][1]); //Current location
-  ctx.stroke();
-  ctx.closePath();
+  ctx.clearRect(0, 0, canvas.width, canvas.height); //Clear canvas
+  for(const line of lines) {
+    if(line.length > 1) {
+      ctx.beginPath();
+      const {x, y} = line[0];
+      ctx.moveTo(x,y);
+      for(const {x, y} of line) {
+        ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+    }
+  }
 });
 
 //Event that checks the canvas for mouse click down
 canvas.addEventListener("mousedown", (e) => {
-  x = e.offsetX; y = e.offsetY;
   isDrawing = true;
+  x = e.offsetX; y = e.offsetY;
+  currLine = [];
+  lines.push(currLine);
+  redoLines.splice(0, redoLines.length); //Reset redo
+  currLine.push({x, y});
+  canvas.dispatchEvent(drawingChanged);
 });
 
 //Event that checks the canvas for mouse movement
 canvas.addEventListener("mousemove", (e) => {
   if(isDrawing) {
-    observer.update([e.offsetX,e.offsetY]);
-    canvas.dispatchEvent(drawingChanged);
     x = e.offsetX; y = e.offsetY;
+    currLine.push({x, y});
+    canvas.dispatchEvent(drawingChanged);
   }
 });
 
 //Event that checks the canvas for mouse click up
 canvas.addEventListener("mouseup", () => {
   if(isDrawing) {
-    canvas.dispatchEvent(drawingChanged);
     isDrawing = false;
+    currLine = []; //Reset current line
+    canvas.dispatchEvent(drawingChanged);
   }
 });
 
@@ -91,16 +95,30 @@ clearButton.addEventListener("click", function() {
 
 //Event that checks if undo button has been clicked
 undoButton.addEventListener("click", function() {
-  //Do Something
+  if(lines.length > 0) {
+    const line = lines.pop(); //Remove last line from lines
+    if (line) {
+      redoLines.push(line); //Add erased line to redo
+      canvas.dispatchEvent(drawingChanged);
+    }
+    
+  }
 });
 
 //Event that checks if redo button has been clicked
-undoButton.addEventListener("click", function() {
-  //Do Something
+redoButton.addEventListener("click", function() {
+  if (redoLines.length > 0) {
+    const line = redoLines.pop(); //Remove most current line from redo
+    if (line) {
+      lines.push(line); //Add to lines to be redrawn
+      canvas.dispatchEvent(drawingChanged);
+    }
+  }
 });
 
 //Helper function to clear the canvas
 function clearCanvas() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  observer.mousePoints.length = 0;
+  lines.splice(0, lines.length); //Reset lines
+  canvas.dispatchEvent(drawingChanged);
 }
