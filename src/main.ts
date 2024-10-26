@@ -34,18 +34,27 @@ app.append(redoButton);
 
 //Create line width button
 const lineWidthButton = document.createElement("button");
-lineWidthButton.innerText = `Line Width`;
+lineWidthButton.innerText = `Line Width: ${ctx.lineWidth}`;
 app.append(lineWidthButton);
 
 let isDrawing: boolean = false; //Check if canvas is being drawn on
 let x: number = 0; //x and y mouse pointer coordinates
 let y: number = 0;
 
-const lines: CMDDrawLines[] = [];
-const redoLines: CMDDrawLines[] = [];
-let currLine: CMDDrawLines;
+const lines: drawLinesCmd[] = [];
+const redoLines: drawLinesCmd[] = [];
+let currLine: drawLinesCmd;
 
-class CMDDrawLines {
+/*
+class drawLinesCmd {
+  display(x:number, y:number) {
+    ctx.font = `${currLine.lineWidth*5}px monospace`;
+    ctx.fillText("•", x-8, y+11);
+  }
+}
+  */
+
+class drawLinesCmd {
   line: {x: number, y: number}[] = [];
   lineWidth: number;
 
@@ -82,11 +91,14 @@ canvas.addEventListener("drawing-changed", () => {
   }
 });
 
+//Event that checks for mouse movement over canvas
+const toolMoved = new Event("tool-moved");
+
 //Event that checks the canvas for mouse click down
 canvas.addEventListener("mousedown", (e) => {
   x = e.offsetX; y = e.offsetY;
   isDrawing = true;
-  currLine = new CMDDrawLines(ctx.lineWidth); //Create new line object
+  currLine = new drawLinesCmd(ctx.lineWidth); //Create new line object
   currLine.drag(x,y);
   lines.push(currLine);
   redoLines.splice(0, redoLines.length); //Reset redo
@@ -99,6 +111,7 @@ canvas.addEventListener("mousemove", (e) => {
     x = e.offsetX; y = e.offsetY;
     currLine.drag(x,y);
     canvas.dispatchEvent(drawingChanged);
+    canvas.dispatchEvent(toolMoved);
   }
 });
 
