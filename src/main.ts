@@ -36,37 +36,49 @@ let isDrawing: boolean = false; //Check if canvas is being drawn on
 let x: number = 0; //x and y mouse pointer coordinates
 let y: number = 0;
 
-const lines: {x:number, y:number}[][] = []; //Lines to be drawn
-const redoLines:{x:number, y:number}[][] = []; //Lines that have been undone
-let currLine: {x:number, y:number}[] = []; //Current line
+const lines: CMDDrawLines[] = [];
+const redoLines: CMDDrawLines[] = [];
+let currLine: CMDDrawLines;
 
+class CMDDrawLines {
+  line: {x: number, y: number}[] = [];
 
+  //Add points to line
+  drag(x: number, y: number) {
+    this.line.push({x, y});
+  }
+
+  //Draw lines
+  display(ctx: CanvasRenderingContext2D) {
+    if(this.line.length > 1) {
+      ctx.beginPath();
+      const {x, y} = this.line[0];
+      ctx.moveTo(x,y);
+      for(const {x, y} of this.line) {
+        ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+    }
+  }
+}
 
 //Event that checks for a change in the drawing
 const drawingChanged = new Event("drawing-changed");
 canvas.addEventListener("drawing-changed", () => {
   ctx.clearRect(0, 0, canvas.width, canvas.height); //Clear canvas
   for(const line of lines) {
-    if(line.length > 1) {
-      ctx.beginPath();
-      const {x, y} = line[0];
-      ctx.moveTo(x,y);
-      for(const {x, y} of line) {
-        ctx.lineTo(x,y);
-      }
-      ctx.stroke();
-    }
+    line.display(ctx);
   }
 });
 
 //Event that checks the canvas for mouse click down
 canvas.addEventListener("mousedown", (e) => {
-  isDrawing = true;
   x = e.offsetX; y = e.offsetY;
-  currLine = [];
+  isDrawing = true;
+  currLine = new CMDDrawLines(); //Create new line object
+  currLine.drag(x,y);
   lines.push(currLine);
   redoLines.splice(0, redoLines.length); //Reset redo
-  currLine.push({x, y});
   canvas.dispatchEvent(drawingChanged);
 });
 
@@ -74,7 +86,7 @@ canvas.addEventListener("mousedown", (e) => {
 canvas.addEventListener("mousemove", (e) => {
   if(isDrawing) {
     x = e.offsetX; y = e.offsetY;
-    currLine.push({x, y});
+    currLine.drag(x,y);
     canvas.dispatchEvent(drawingChanged);
   }
 });
@@ -83,7 +95,6 @@ canvas.addEventListener("mousemove", (e) => {
 canvas.addEventListener("mouseup", () => {
   if(isDrawing) {
     isDrawing = false;
-    currLine = []; //Reset current line
     canvas.dispatchEvent(drawingChanged);
   }
 });
@@ -101,7 +112,6 @@ undoButton.addEventListener("click", function() {
       redoLines.push(line); //Add erased line to redo
       canvas.dispatchEvent(drawingChanged);
     }
-    
   }
 });
 
