@@ -13,7 +13,7 @@ canvas.setAttribute("width", "256");
 canvas.setAttribute("height", "256");
 app.append(canvas);
 
- //Set line color and thickness
+ //Set default line color and line width
 ctx.strokeStyle = 'black';
 ctx.lineWidth = 1;
 
@@ -32,6 +32,11 @@ const redoButton = document.createElement("button");
 redoButton.innerText = "Redo";
 app.append(redoButton);
 
+//Create line width button
+const lineWidthButton = document.createElement("button");
+lineWidthButton.innerText = `Line Width`;
+app.append(lineWidthButton);
+
 let isDrawing: boolean = false; //Check if canvas is being drawn on
 let x: number = 0; //x and y mouse pointer coordinates
 let y: number = 0;
@@ -42,6 +47,11 @@ let currLine: CMDDrawLines;
 
 class CMDDrawLines {
   line: {x: number, y: number}[] = [];
+  lineWidth: number;
+
+  constructor(width: number) {
+    this.lineWidth = width;
+  }
 
   //Add points to line
   drag(x: number, y: number) {
@@ -52,6 +62,7 @@ class CMDDrawLines {
   display(ctx: CanvasRenderingContext2D) {
     if(this.line.length > 1) {
       ctx.beginPath();
+      ctx.lineWidth = this.lineWidth;
       const {x, y} = this.line[0];
       ctx.moveTo(x,y);
       for(const {x, y} of this.line) {
@@ -75,7 +86,7 @@ canvas.addEventListener("drawing-changed", () => {
 canvas.addEventListener("mousedown", (e) => {
   x = e.offsetX; y = e.offsetY;
   isDrawing = true;
-  currLine = new CMDDrawLines(); //Create new line object
+  currLine = new CMDDrawLines(ctx.lineWidth); //Create new line object
   currLine.drag(x,y);
   lines.push(currLine);
   redoLines.splice(0, redoLines.length); //Reset redo
@@ -124,6 +135,15 @@ redoButton.addEventListener("click", function() {
       canvas.dispatchEvent(drawingChanged);
     }
   }
+});
+
+lineWidthButton.addEventListener("click", function() {
+  if (ctx.lineWidth == 1) {
+    ctx.lineWidth = 10;
+  } else {
+    ctx.lineWidth = 1;
+  }
+  lineWidthButton.innerText = `Line Width: ${ctx.lineWidth}`;
 });
 
 //Helper function to clear the canvas
