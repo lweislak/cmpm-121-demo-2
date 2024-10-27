@@ -104,5 +104,5 @@ canvas {
   background-color: #ffffff;
   border-radius: 30px;
   filter: drop-shadow(20px 10px 4px #000000);
-  cursor: crosshair;
+  cursor: none;
 }

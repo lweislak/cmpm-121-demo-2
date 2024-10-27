@@ -34,23 +34,31 @@ app.append(redoButton);
 
 //Create line width button
 const lineWidthButton = document.createElement("button");
-lineWidthButton.innerText = `Line Width: ${ctx.lineWidth}`;
+lineWidthButton.innerText = "Line Width: 1";
 app.append(lineWidthButton);
 
 const cursor = {isDrawing: false, x: 0, y:0};
 const lines: drawLinesCmd[] = [];
 const redoLines: drawLinesCmd[] = [];
 let currLine: drawLinesCmd;
+let cursorCmd: drawCursorCmd | undefined = undefined;
+let lineThickness = 1;
 
-/*
 class drawCursorCmd {
-  display(x:number, y:number) {
-    ctx.font = `${currLine.lineWidth*5}px monospace`;
-    ctx.fillText("•", x-8, y+11);
+  x:number; y:number;
+  constructor(x:number,y:number) {
+    this.x = x; this.y = y;
+  }
+
+  display(ctx: CanvasRenderingContext2D) {
+    ctx.lineWidth = lineThickness;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, lineThickness/2, 0 , 2*Math.PI);
+    ctx.fillStyle = "black";
+    ctx.fill();
+    ctx.stroke();
   }
 }
-const cursorCmd = new drawCursorCmd();
-*/
 
 class drawLinesCmd {
   line: {x: number, y: number}[] = [];
@@ -80,22 +88,33 @@ class drawLinesCmd {
   }
 }
 
+//Event that check for change in cursor
 const toolMoved = new Event("tool-moved");
+canvas.addEventListener("tool-moved", redraw);
 
 //Event that checks for a change in the drawing
 const drawingChanged = new Event("drawing-changed");
-canvas.addEventListener("drawing-changed", () => {
-  ctx.clearRect(0, 0, canvas.width, canvas.height); //Clear canvas
-  for(const line of lines) {
-    line.display(ctx);
-  }
+canvas.addEventListener("drawing-changed", redraw);
+
+//Event that checks if mouse has entered bounds of the canvas
+canvas.addEventListener("mouseenter", (e) => {
+  cursorCmd = new drawCursorCmd(e.offsetX, e.offsetY);
+  canvas.dispatchEvent(toolMoved);
+});
+
+//Event that checks if mouse has exited bounds of the canvas
+canvas.addEventListener("mouseleave", () => {
+  cursorCmd = undefined;
+  canvas.dispatchEvent(toolMoved);
 });
 
 //Event that checks the canvas for mouse click down
 canvas.addEventListener("mousedown", (e) => {
+  cursorCmd = undefined;
+  canvas.dispatchEvent(toolMoved);
   cursor.x = e.offsetX; cursor.y = e.offsetY;
   cursor.isDrawing = true;
-  currLine = new drawLinesCmd(ctx.lineWidth); //Create new line object
+  currLine = new drawLinesCmd(lineThickness); //Create new line object
   currLine.drag(cursor.x,cursor.y);
   lines.push(currLine);
   redoLines.splice(0, redoLines.length); //Reset redo
@@ -104,16 +123,20 @@ canvas.addEventListener("mousedown", (e) => {
 
 //Event that checks the canvas for mouse movement
 canvas.addEventListener("mousemove", (e) => {
+  canvas.dispatchEvent(toolMoved);
   if(cursor.isDrawing) {
     cursor.x = e.offsetX; cursor.y = e.offsetY;
     currLine.drag(cursor.x,cursor.y);
     canvas.dispatchEvent(drawingChanged);
+  } else {
+    cursorCmd = new drawCursorCmd(e.offsetX, e.offsetY);
     canvas.dispatchEvent(toolMoved);
   }
 });
 
 //Event that checks the canvas for mouse click up
-canvas.addEventListener("mouseup", () => {
+canvas.addEventListener("mouseup", (e) => {
+  cursorCmd = new drawCursorCmd(e.offsetX, e.offsetY);
   if(cursor.isDrawing) {
     cursor.isDrawing = false;
     canvas.dispatchEvent(drawingChanged);
@@ -147,14 +170,29 @@ redoButton.addEventListener("click", function() {
   }
 });
 
+//Change line width when button is clicked
+//1 = thin, 10 = thick
 lineWidthButton.addEventListener("click", function() {
-  if (ctx.lineWidth == 1) {
-    ctx.lineWidth = 10;
+  if (lineThickness == 1) {
+    lineThickness = 10;
   } else {
-    ctx.lineWidth = 1;
+    lineThickness = 1;
   }
-  lineWidthButton.innerText = `Line Width: ${ctx.lineWidth}`;
+  lineWidthButton.innerText = `Line Width: ${lineThickness}`;
 });
+
+
+//Helper function to redraw the canvas and cursor
+function redraw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height); //Clear canvas
+  for(const line of lines) { //Redraw valid lines
+    line.display(ctx);
+  }
+
+  if(cursorCmd) { //Check if cursor is valid and needs to be shown
+    cursorCmd.display(ctx);
+  }
+}
 
 //Helper function to clear the canvas
 function clearCanvas() {
