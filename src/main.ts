@@ -37,22 +37,20 @@ const lineWidthButton = document.createElement("button");
 lineWidthButton.innerText = `Line Width: ${ctx.lineWidth}`;
 app.append(lineWidthButton);
 
-let isDrawing: boolean = false; //Check if canvas is being drawn on
-let x: number = 0; //x and y mouse pointer coordinates
-let y: number = 0;
-
+const cursor = {isDrawing: false, x: 0, y:0};
 const lines: drawLinesCmd[] = [];
 const redoLines: drawLinesCmd[] = [];
 let currLine: drawLinesCmd;
 
 /*
-class drawLinesCmd {
+class drawCursorCmd {
   display(x:number, y:number) {
     ctx.font = `${currLine.lineWidth*5}px monospace`;
     ctx.fillText("•", x-8, y+11);
   }
 }
-  */
+const cursorCmd = new drawCursorCmd();
+*/
 
 class drawLinesCmd {
   line: {x: number, y: number}[] = [];
@@ -82,6 +80,8 @@ class drawLinesCmd {
   }
 }
 
+const toolMoved = new Event("tool-moved");
+
 //Event that checks for a change in the drawing
 const drawingChanged = new Event("drawing-changed");
 canvas.addEventListener("drawing-changed", () => {
@@ -91,15 +91,12 @@ canvas.addEventListener("drawing-changed", () => {
   }
 });
 
-//Event that checks for mouse movement over canvas
-const toolMoved = new Event("tool-moved");
-
 //Event that checks the canvas for mouse click down
 canvas.addEventListener("mousedown", (e) => {
-  x = e.offsetX; y = e.offsetY;
-  isDrawing = true;
+  cursor.x = e.offsetX; cursor.y = e.offsetY;
+  cursor.isDrawing = true;
   currLine = new drawLinesCmd(ctx.lineWidth); //Create new line object
-  currLine.drag(x,y);
+  currLine.drag(cursor.x,cursor.y);
   lines.push(currLine);
   redoLines.splice(0, redoLines.length); //Reset redo
   canvas.dispatchEvent(drawingChanged);
@@ -107,9 +104,9 @@ canvas.addEventListener("mousedown", (e) => {
 
 //Event that checks the canvas for mouse movement
 canvas.addEventListener("mousemove", (e) => {
-  if(isDrawing) {
-    x = e.offsetX; y = e.offsetY;
-    currLine.drag(x,y);
+  if(cursor.isDrawing) {
+    cursor.x = e.offsetX; cursor.y = e.offsetY;
+    currLine.drag(cursor.x,cursor.y);
     canvas.dispatchEvent(drawingChanged);
     canvas.dispatchEvent(toolMoved);
   }
@@ -117,8 +114,8 @@ canvas.addEventListener("mousemove", (e) => {
 
 //Event that checks the canvas for mouse click up
 canvas.addEventListener("mouseup", () => {
-  if(isDrawing) {
-    isDrawing = false;
+  if(cursor.isDrawing) {
+    cursor.isDrawing = false;
     canvas.dispatchEvent(drawingChanged);
   }
 });
