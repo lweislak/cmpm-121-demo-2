@@ -37,12 +37,50 @@ const lineWidthButton = document.createElement("button");
 lineWidthButton.innerText = "Line Width: 1";
 app.append(lineWidthButton);
 
+//Create salt emoji button
+const saltButton = document.createElement("button");
+saltButton.innerText = "🧂";
+app.append(saltButton);
+
+//Create star emoji button
+const starButton = document.createElement("button");
+starButton.innerText = "🌠";
+app.append(starButton);
+
+//Create heart emoji button
+const heartButton = document.createElement("button");
+heartButton.innerText = "💛";
+app.append(heartButton);
+
+
 const cursor = {isDrawing: false, x: 0, y:0};
 const lines: drawLinesCmd[] = [];
 const redoLines: drawLinesCmd[] = [];
+//const emojis = ["🧂", "🌠", "💛"];
+
 let currLine: drawLinesCmd;
 let cursorCmd: drawCursorCmd | undefined = undefined;
 let lineThickness = 1;
+
+/*
+class drawEmojiCmd {
+  x: number; y:number;
+  emoji: string;
+  constructor(x:number, y:number, emoji:string) {
+    this.x = x; this.y = y;
+    this.emoji = emoji;
+  }
+
+  display(ctx: CanvasRenderingContext2D) {
+    ctx.fillText(this.emoji, this.x, this.y);
+  }
+
+  drag(x:number, y:number) {
+    this.x = x;
+    this.y = y;
+  }
+}
+  */
 
 class drawCursorCmd {
   x:number; y:number;
