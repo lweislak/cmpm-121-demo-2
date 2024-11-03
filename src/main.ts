@@ -12,9 +12,25 @@ canvas.setAttribute("width", "256");
 canvas.setAttribute("height", "256");
 app.append(canvas);
 
+const cursor = {isDrawing: false, x: 0, y:0};
+const lines: (drawLinesCmd | drawEmojiCmd)[] = [];
+const redoLines: (drawLinesCmd | drawEmojiCmd)[] = [];
+const THIN_LINE = 1;
+const THICK_LINE = 10;
+const EXPORT_WIDTH = 1024;
+const EXPORT_HEIGHT = 1024;
+const EMPTY_STR = "";
+
+let currLine: drawLinesCmd;
+let cursorCmd: drawCursorCmd | undefined = undefined;
+let emojiCmd: drawEmojiCmd | undefined = undefined;
+let emojiSelected: boolean = false;
+let currEmoji: string | null = EMPTY_STR;
+let lineThickness = THIN_LINE;
+
  //Set default line color and line width
-ctx.strokeStyle = 'black';
-ctx.lineWidth = 1;
+ ctx.strokeStyle = 'black';
+ ctx.lineWidth = THIN_LINE;
 
 const emojiDiv = document.createElement("div");
 app.append(emojiDiv);
@@ -72,18 +88,6 @@ function setButtons() {
 setButtons();
 
 
-const cursor = {isDrawing: false, x: 0, y:0};
-const lines: (drawLinesCmd | drawEmojiCmd)[] = [];
-const redoLines: (drawLinesCmd | drawEmojiCmd)[] = [];
-
-let currLine: drawLinesCmd;
-let cursorCmd: drawCursorCmd | undefined = undefined;
-let emojiCmd: drawEmojiCmd | undefined = undefined;
-let emojiSelected: boolean = false;
-let currEmoji: string | null = "";
-let lineThickness = 1; //Default
-
-
 class drawEmojiCmd {
   x: number; y:number;
   emoji: string;
@@ -115,7 +119,7 @@ class drawCursorCmd {
     } else {
     ctx.lineWidth = lineThickness;
     ctx.beginPath();
-    ctx.arc(this.x, this.y, lineThickness/2, 0 , 2*Math.PI);
+    ctx.arc(this.x, this.y, lineThickness/2, 0 , 2*Math.PI); //Draw circle
     ctx.fillStyle = "black";
     ctx.fill();
     ctx.stroke();
@@ -236,20 +240,16 @@ redoButton.addEventListener("click", function() {
 });
 
 //Change line width when button is clicked
-//1 = thin, 10 = thick
 lineWidthButton.addEventListener("click", function() {
   emojiCmd = undefined;
   emojiSelected = false;
-  if (lineThickness == 1) {
-    lineThickness = 10;
-  } else {
-    lineThickness = 1;
-  }
+  if (lineThickness == THIN_LINE) {lineThickness = THICK_LINE;} 
+  else {lineThickness = THIN_LINE;}
   lineWidthButton.innerText = `Line Width: ${lineThickness}`;
 });
 
 emojiButton.addEventListener("click", function() {
-  currEmoji = prompt("Custom sticker text", ""); //Select custom string
+  currEmoji = prompt("Custom sticker text", EMPTY_STR); //Select custom string
   emojiSelected = true;
   emojis.push({"emoji": currEmoji!, "button": null}); //Add custom emoji button
   setButtons();
@@ -257,8 +257,8 @@ emojiButton.addEventListener("click", function() {
 
 exportButton.addEventListener("click", function() {
   const exportCanvas = document.createElement("canvas");
-  exportCanvas.width = 1024;
-  exportCanvas.height = 1024;
+  exportCanvas.width = EXPORT_WIDTH;
+  exportCanvas.height = EXPORT_HEIGHT;
   const exportctx = exportCanvas.getContext("2d")!;
   exportctx.scale(exportCanvas.width/canvas.width, exportCanvas.height/canvas.height);
 
@@ -282,7 +282,7 @@ function redraw(ctx: CanvasRenderingContext2D) {
     if (emojiSelected) {
       cursorCmd.display(ctx, currEmoji!);
     } else {
-      cursorCmd.display(ctx, "");
+      cursorCmd.display(ctx, EMPTY_STR);
     }
   }
 }
@@ -291,6 +291,6 @@ function redraw(ctx: CanvasRenderingContext2D) {
 function clearCanvas() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   lines.splice(0, lines.length); //Reset lines
-  currEmoji = ""; //Reset to empty string
+  currEmoji = EMPTY_STR; //Reset to empty string
   canvas.dispatchEvent(drawingChanged);
 }
