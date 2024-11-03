@@ -37,33 +37,22 @@ const lineWidthButton = document.createElement("button");
 lineWidthButton.innerText = "Line Width: 1";
 app.append(lineWidthButton);
 
-//Create salt emoji button
-const saltButton = document.createElement("button");
-saltButton.innerText = "🧂";
-app.append(saltButton);
-
-//Create star emoji button
-const starButton = document.createElement("button");
-starButton.innerText = "🌠";
-app.append(starButton);
-
-//Create heart emoji button
-const heartButton = document.createElement("button");
-heartButton.innerText = "💛";
-app.append(heartButton);
+//Create custom emoji/string button
+const emojiButton = document.createElement("button");
+emojiButton.innerText = "Custom Emoji";
+app.append(emojiButton);
 
 
 
 const cursor = {isDrawing: false, x: 0, y:0};
 const lines: (drawLinesCmd | drawEmojiCmd)[] = [];
 const redoLines: (drawLinesCmd | drawEmojiCmd)[] = [];
-const emojis = ["🧂", "🌠", "💛"];
-let currEmoji: string = "";
 
 let currLine: drawLinesCmd;
 let cursorCmd: drawCursorCmd | undefined = undefined;
 let emojiCmd: drawEmojiCmd | undefined = undefined;
 let emojiSelected: boolean = false;
+let currEmoji: string | null = "";
 let lineThickness = 1; //Default
 
 
@@ -159,19 +148,18 @@ canvas.addEventListener("mousedown", (e) => {
   cursor.x = e.offsetX; cursor.y = e.offsetY;
   cursorCmd = undefined;
   canvas.dispatchEvent(toolMoved);
-  if (emojiSelected) {
-    emojiCmd = new drawEmojiCmd(cursor.x, cursor.y, currEmoji);
+  if (emojiSelected) { //Display selected emoji as cursor
+    emojiCmd = new drawEmojiCmd(cursor.x, cursor.y, currEmoji!);
     emojiCmd.drag(cursor.x, cursor.y);
     lines.push(emojiCmd);
-    canvas.dispatchEvent(drawingChanged);
-  } else {
-  cursor.isDrawing = true;
-  currLine = new drawLinesCmd(lineThickness); //Create new line object
-  currLine.drag(cursor.x,cursor.y);
-  lines.push(currLine);
+  } else { //Display circle of line width as cursor
+    cursor.isDrawing = true;
+    currLine = new drawLinesCmd(lineThickness); //Create new line object
+    currLine.drag(cursor.x,cursor.y);
+    lines.push(currLine);
+  }
   redoLines.splice(0, redoLines.length); //Reset redo
   canvas.dispatchEvent(drawingChanged);
-  }
 });
 
 //Event that checks the canvas for mouse movement
@@ -222,7 +210,7 @@ redoButton.addEventListener("click", function() {
 //Change line width when button is clicked
 //1 = thin, 10 = thick
 lineWidthButton.addEventListener("click", function() {
-  emojiCmd = undefined; //TODO: Move this
+  emojiCmd = undefined;
   emojiSelected = false;
   if (lineThickness == 1) {
     lineThickness = 10;
@@ -232,17 +220,8 @@ lineWidthButton.addEventListener("click", function() {
   lineWidthButton.innerText = `Line Width: ${lineThickness}`;
 });
 
-//Events that check if sticker buttons have been clicked
-saltButton.addEventListener("click", function() {
-  currEmoji = emojis[0];
-  emojiSelected = true;
-});
-starButton.addEventListener("click", function() {
-  currEmoji = emojis[1];
-  emojiSelected = true;
-});
-heartButton.addEventListener("click", function() {
-  currEmoji = emojis[2];
+emojiButton.addEventListener("click", function() {
+  currEmoji = prompt("Custom sticker text", ""); //Select custom string
   emojiSelected = true;
 });
 
@@ -256,7 +235,7 @@ function redraw() {
 
   if(cursorCmd) { //Check if cursor is valid and needs to be shown
     if (emojiSelected) {
-      cursorCmd.display(ctx, currEmoji);
+      cursorCmd.display(ctx, currEmoji!);
     } else {
       cursorCmd.display(ctx, "");
     }
@@ -267,5 +246,6 @@ function redraw() {
 function clearCanvas() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   lines.splice(0, lines.length); //Reset lines
+  currEmoji = ""; //Reset to empty string
   canvas.dispatchEvent(drawingChanged);
 }
