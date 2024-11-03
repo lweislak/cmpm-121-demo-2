@@ -4,7 +4,6 @@ const APP_NAME = "Canvas Drawing";
 const app = document.querySelector<HTMLDivElement>("#app")!;
 
 document.title = APP_NAME;
-//app.innerHTML = APP_NAME;
 
 //Create canvas
 const canvas: HTMLCanvasElement = document.createElement("canvas");
@@ -16,6 +15,9 @@ app.append(canvas);
  //Set default line color and line width
 ctx.strokeStyle = 'black';
 ctx.lineWidth = 1;
+
+const emojiDiv = document.createElement("div");
+app.append(emojiDiv);
 
 //Create clear button
 const clearButton = document.createElement("button");
@@ -37,6 +39,12 @@ const lineWidthButton = document.createElement("button");
 lineWidthButton.innerText = "Line Width: 1";
 app.append(lineWidthButton);
 
+//Create export button
+const exportButton = document.createElement("button");
+exportButton.innerText = "Export";
+app.append(exportButton);
+
+
 //Create custom emoji/string button
 const emojiButton = document.createElement("button");
 emojiButton.innerText = "Custom Emoji";
@@ -53,7 +61,7 @@ function setButtons() {
     if(!emojis[i].button) {
       emojis[i].button = document.createElement("button");
       emojis[i].button!.innerText = emojis[i].emoji;
-      app.append(emojis[i].button!);
+      emojiDiv.append(emojis[i].button!);
     }
     emojis[i].button!.addEventListener("click", function() {
       currEmoji = emojis[i].emoji;
@@ -145,11 +153,11 @@ class drawLinesCmd {
 
 //Event that check for change in cursor
 const toolMoved = new Event("tool-moved");
-canvas.addEventListener("tool-moved", redraw);
+canvas.addEventListener("tool-moved", redraw.bind(null, ctx));
 
 //Event that checks for a change in the drawing
 const drawingChanged = new Event("drawing-changed");
-canvas.addEventListener("drawing-changed", redraw);
+canvas.addEventListener("drawing-changed", redraw.bind(null, ctx));
 
 //Event that checks if mouse has entered bounds of the canvas
 canvas.addEventListener("mouseenter", (e) => {
@@ -247,9 +255,24 @@ emojiButton.addEventListener("click", function() {
   setButtons();
 });
 
+exportButton.addEventListener("click", function() {
+  const exportCanvas = document.createElement("canvas");
+  exportCanvas.width = 1024;
+  exportCanvas.height = 1024;
+  const exportctx = exportCanvas.getContext("2d")!;
+  exportctx.scale(exportCanvas.width/canvas.width, exportCanvas.height/canvas.height);
+
+  redraw(exportctx);
+
+  const anchor = document.createElement("a");
+  anchor.href = canvas.toDataURL("image/png");
+  anchor.download = "sketchpad.png";
+  anchor.click();
+});
+
 
 //Helper function to redraw the canvas and cursor
-function redraw() {
+function redraw(ctx: CanvasRenderingContext2D) {
   ctx.clearRect(0, 0, canvas.width, canvas.height); //Clear canvas
   for(const line of lines) { //Redraw valid lines
     line.display(ctx);
