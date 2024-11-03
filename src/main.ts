@@ -42,6 +42,26 @@ const emojiButton = document.createElement("button");
 emojiButton.innerText = "Custom Emoji";
 app.append(emojiButton);
 
+const emojis = [
+  {"emoji": "🧂", "button": null as HTMLButtonElement | null},
+  {"emoji": "🌠", "button": null as HTMLButtonElement | null},
+  {"emoji": "💛", "button": null as HTMLButtonElement | null}
+]
+
+function setButtons() {
+  for(let i = 0; i < emojis.length; i++) {
+    if(!emojis[i].button) {
+      emojis[i].button = document.createElement("button");
+      emojis[i].button!.innerText = emojis[i].emoji;
+      app.append(emojis[i].button!);
+    }
+    emojis[i].button!.addEventListener("click", function() {
+      currEmoji = emojis[i].emoji;
+      emojiSelected = true;
+    });
+  }
+}
+setButtons();
 
 
 const cursor = {isDrawing: false, x: 0, y:0};
@@ -223,6 +243,8 @@ lineWidthButton.addEventListener("click", function() {
 emojiButton.addEventListener("click", function() {
   currEmoji = prompt("Custom sticker text", ""); //Select custom string
   emojiSelected = true;
+  emojis.push({"emoji": currEmoji!, "button": null}); //Add custom emoji button
+  setButtons();
 });
 
 
