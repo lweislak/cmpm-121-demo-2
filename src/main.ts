@@ -5,21 +5,23 @@ const app = document.querySelector<HTMLDivElement>("#app")!;
 
 document.title = APP_NAME;
 
-//Create canvas
-const canvas: HTMLCanvasElement = document.createElement("canvas");
-const ctx: CanvasRenderingContext2D = canvas.getContext("2d")!; //Check that result isn't null
-canvas.setAttribute("width", "256");
-canvas.setAttribute("height", "256");
-app.append(canvas);
-
 const cursor = {isDrawing: false, x: 0, y:0};
 const lines: (drawLinesCmd | drawEmojiCmd)[] = [];
 const redoLines: (drawLinesCmd | drawEmojiCmd)[] = [];
 const THIN_LINE = 1;
 const THICK_LINE = 10;
+const CANVAS_WIDTH = 256;
+const CANVAS_HEIGHT = 256;
 const EXPORT_WIDTH = 1024;
 const EXPORT_HEIGHT = 1024;
 const EMPTY_STR = "";
+
+//Create canvas
+const canvas: HTMLCanvasElement = document.createElement("canvas");
+const ctx: CanvasRenderingContext2D = canvas.getContext("2d")!; //Check that result isn't null
+canvas.height = CANVAS_HEIGHT;
+canvas.width = CANVAS_WIDTH;
+app.append(canvas);
 
 let currLine: drawLinesCmd;
 let cursorCmd: drawCursorCmd | undefined = undefined;
@@ -27,9 +29,10 @@ let emojiCmd: drawEmojiCmd | undefined = undefined;
 let emojiSelected: boolean = false;
 let currEmoji: string | null = EMPTY_STR;
 let lineThickness = THIN_LINE;
+let color = 'black';
 
  //Set default line color and line width
- ctx.strokeStyle = 'black';
+ ctx.strokeStyle = color;
  ctx.lineWidth = THIN_LINE;
 
 const emojiDiv = document.createElement("div");
@@ -54,6 +57,11 @@ app.append(redoButton);
 const lineWidthButton = document.createElement("button");
 lineWidthButton.innerText = "Line Width: 1";
 app.append(lineWidthButton);
+
+//Create line color button
+const lineColorButton = document.createElement("button");
+lineColorButton.innerText = "Color"
+app.append(lineColorButton);
 
 //Create export button
 const exportButton = document.createElement("button");
@@ -120,7 +128,7 @@ class drawCursorCmd {
     ctx.lineWidth = lineThickness;
     ctx.beginPath();
     ctx.arc(this.x, this.y, lineThickness/2, 0 , 2*Math.PI); //Draw circle
-    ctx.fillStyle = "black";
+    ctx.strokeStyle = color;
     ctx.fill();
     ctx.stroke();
     }
@@ -130,9 +138,11 @@ class drawCursorCmd {
 class drawLinesCmd {
   line: {x: number, y: number}[] = [];
   lineWidth: number;
+  lineColor: string;
 
-  constructor(width: number) {
+  constructor(width: number, color: string) {
     this.lineWidth = width;
+    this.lineColor = color;
   }
 
   //Add points to line
@@ -144,6 +154,7 @@ class drawLinesCmd {
   display(ctx: CanvasRenderingContext2D) {
     if(this.line.length > 1) {
       ctx.beginPath();
+      ctx.strokeStyle = this.lineColor;
       ctx.lineWidth = this.lineWidth;
       const {x, y} = this.line[0];
       ctx.moveTo(x,y);
@@ -186,7 +197,7 @@ canvas.addEventListener("mousedown", (e) => {
     lines.push(emojiCmd);
   } else { //Display circle of line width as cursor
     cursor.isDrawing = true;
-    currLine = new drawLinesCmd(lineThickness); //Create new line object
+    currLine = new drawLinesCmd(lineThickness, color); //Create new line object
     currLine.drag(cursor.x,cursor.y);
     lines.push(currLine);
   }
@@ -270,6 +281,12 @@ exportButton.addEventListener("click", function() {
   anchor.click();
 });
 
+//Random color code found at: https://stackoverflow.com/a/74280677
+lineColorButton.addEventListener("click", function() {
+  color = "#"+Math.floor(Math.random()*16777215).toString(16);
+  lineColorButton.style.backgroundColor = color;
+  ctx.strokeStyle = color;
+});
 
 //Helper function to redraw the canvas and cursor
 function redraw(ctx: CanvasRenderingContext2D) {
