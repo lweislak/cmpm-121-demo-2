@@ -53,16 +53,19 @@ heartButton.innerText = "💛";
 app.append(heartButton);
 
 
+
 const cursor = {isDrawing: false, x: 0, y:0};
 const lines: drawLinesCmd[] = [];
 const redoLines: drawLinesCmd[] = [];
-//const emojis = ["🧂", "🌠", "💛"];
+const emojis = ["🧂", "🌠", "💛"];
+let currEmoji: string = "";
 
 let currLine: drawLinesCmd;
 let cursorCmd: drawCursorCmd | undefined = undefined;
-let lineThickness = 1;
+let emojiCmd: drawEmojiCmd | undefined = undefined;
+let lineThickness = 1; //Default
 
-/*
+
 class drawEmojiCmd {
   x: number; y:number;
   emoji: string;
@@ -80,7 +83,6 @@ class drawEmojiCmd {
     this.y = y;
   }
 }
-  */
 
 class drawCursorCmd {
   x:number; y:number;
@@ -88,13 +90,18 @@ class drawCursorCmd {
     this.x = x; this.y = y;
   }
 
-  display(ctx: CanvasRenderingContext2D) {
+  display(ctx: CanvasRenderingContext2D, emoji: string) {
+    if(emojiCmd) {
+      ctx.font = "24px sans-serif";
+      ctx.fillText(emoji, this.x, this.y);
+    } else {
     ctx.lineWidth = lineThickness;
     ctx.beginPath();
     ctx.arc(this.x, this.y, lineThickness/2, 0 , 2*Math.PI);
     ctx.fillStyle = "black";
     ctx.fill();
     ctx.stroke();
+    }
   }
 }
 
@@ -148,9 +155,9 @@ canvas.addEventListener("mouseleave", () => {
 
 //Event that checks the canvas for mouse click down
 canvas.addEventListener("mousedown", (e) => {
+  cursor.x = e.offsetX; cursor.y = e.offsetY;
   cursorCmd = undefined;
   canvas.dispatchEvent(toolMoved);
-  cursor.x = e.offsetX; cursor.y = e.offsetY;
   cursor.isDrawing = true;
   currLine = new drawLinesCmd(lineThickness); //Create new line object
   currLine.drag(cursor.x,cursor.y);
@@ -172,7 +179,6 @@ canvas.addEventListener("mousemove", (e) => {
   }
 });
 
-//Event that checks the canvas for mouse click up
 canvas.addEventListener("mouseup", (e) => {
   cursorCmd = new drawCursorCmd(e.offsetX, e.offsetY);
   if(cursor.isDrawing) {
@@ -181,12 +187,10 @@ canvas.addEventListener("mouseup", (e) => {
   }
 });
 
-//Event that checks if clear button has been clicked
 clearButton.addEventListener("click", function() {
   clearCanvas();
 });
 
-//Event that checks if undo button has been clicked
 undoButton.addEventListener("click", function() {
   if(lines.length > 0) {
     const line = lines.pop(); //Remove last line from lines
@@ -197,7 +201,6 @@ undoButton.addEventListener("click", function() {
   }
 });
 
-//Event that checks if redo button has been clicked
 redoButton.addEventListener("click", function() {
   if (redoLines.length > 0) {
     const line = redoLines.pop(); //Remove most current line from redo
@@ -211,12 +214,27 @@ redoButton.addEventListener("click", function() {
 //Change line width when button is clicked
 //1 = thin, 10 = thick
 lineWidthButton.addEventListener("click", function() {
+  emojiCmd = undefined; //TODO: Move this
   if (lineThickness == 1) {
     lineThickness = 10;
   } else {
     lineThickness = 1;
   }
   lineWidthButton.innerText = `Line Width: ${lineThickness}`;
+});
+
+//Events that check if sticker buttons have been clicked
+saltButton.addEventListener("click", function(e) {
+  currEmoji = emojis[0];
+  emojiCmd = new drawEmojiCmd(e.offsetX, e.offsetY, emojis[0]);
+});
+starButton.addEventListener("click", function(e) {
+  currEmoji = emojis[1];
+  emojiCmd = new drawEmojiCmd(e.offsetX, e.offsetY, emojis[0]);
+});
+heartButton.addEventListener("click", function(e) {
+  currEmoji = emojis[2];
+  emojiCmd = new drawEmojiCmd(e.offsetX, e.offsetY, emojis[0]);
 });
 
 
@@ -228,7 +246,8 @@ function redraw() {
   }
 
   if(cursorCmd) { //Check if cursor is valid and needs to be shown
-    cursorCmd.display(ctx);
+    if (emojiCmd) {cursorCmd.display(ctx, currEmoji);}
+    cursorCmd.display(ctx, "");
   }
 }
 
