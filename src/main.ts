@@ -43,36 +43,98 @@ const clearButton = document.createElement("button");
 clearButton.innerText = "Clear";
 app.append(clearButton);
 
+clearButton.addEventListener("click", function() {
+  clearCanvas();
+});
+
 //Create undo button
 const undoButton = document.createElement("button");
 undoButton.innerText = "Undo";
 app.append(undoButton);
+
+undoButton.addEventListener("click", function() {
+  if(lines.length > 0) {
+    const line = lines.pop(); //Remove last line from lines
+    if (line) {
+      redoLines.push(line); //Add erased line to redo
+      canvas.dispatchEvent(drawingChanged);
+    }
+  }
+});
 
 //Create redo button
 const redoButton = document.createElement("button");
 redoButton.innerText = "Redo";
 app.append(redoButton);
 
+redoButton.addEventListener("click", function() {
+  if (redoLines.length > 0) {
+    const line = redoLines.pop(); //Remove most current line from redo
+    if (line) {
+      lines.push(line); //Add to lines to be redrawn
+      canvas.dispatchEvent(drawingChanged);
+    }
+  }
+});
+
 //Create line width button
 const lineWidthButton = document.createElement("button");
 lineWidthButton.innerText = "Line Width: 1";
 app.append(lineWidthButton);
+
+
+//Change line width when button is clicked
+lineWidthButton.addEventListener("click", function() {
+  emojiCmd = undefined;
+  emojiSelected = false;
+  if (lineThickness == THIN_LINE) {lineThickness = THICK_LINE;} 
+  else {lineThickness = THIN_LINE;}
+  lineWidthButton.innerText = `Line Width: ${lineThickness}`;
+});
 
 //Create line color button
 const lineColorButton = document.createElement("button");
 lineColorButton.innerText = "Color"
 app.append(lineColorButton);
 
+//Random color code found at: https://stackoverflow.com/a/74280677
+lineColorButton.addEventListener("click", function() {
+  color = "#"+Math.floor(Math.random()*16777215).toString(16);
+  lineColorButton.style.backgroundColor = color;
+  ctx.strokeStyle = color;
+});
+
 //Create export button
 const exportButton = document.createElement("button");
 exportButton.innerText = "Export";
 app.append(exportButton);
 
+exportButton.addEventListener("click", function() {
+  const exportCanvas = document.createElement("canvas");
+  exportCanvas.width = EXPORT_WIDTH;
+  exportCanvas.height = EXPORT_HEIGHT;
+  const exportctx = exportCanvas.getContext("2d")!;
+  exportctx.scale(exportCanvas.width/canvas.width, exportCanvas.height/canvas.height);
+
+  redraw(exportctx);
+
+  const anchor = document.createElement("a");
+  anchor.href = canvas.toDataURL("image/png");
+  anchor.download = "sketchpad.png";
+  anchor.click();
+});
 
 //Create custom emoji/string button
 const emojiButton = document.createElement("button");
 emojiButton.innerText = "Custom Emoji";
 app.append(emojiButton);
+
+emojiButton.addEventListener("click", function() {
+  currEmoji = prompt("Custom sticker text", EMPTY_STR); //Select custom string
+  emojiSelected = true;
+  emojis.push({"emoji": currEmoji!, "button": null}); //Add custom emoji button
+  setButtons();
+});
 
 const emojis = [
   {"emoji": "🧂", "button": null as HTMLButtonElement | null},
@@ -183,6 +245,7 @@ canvas.addEventListener("mouseenter", (e) => {
 //Event that checks if mouse has exited bounds of the canvas
 canvas.addEventListener("mouseleave", () => {
   cursorCmd = undefined;
+  cursor.isDrawing = false;
   canvas.dispatchEvent(toolMoved);
 });
 
@@ -226,67 +289,6 @@ canvas.addEventListener("mouseup", (e) => {
   }
 });
 
-clearButton.addEventListener("click", function() {
-  clearCanvas();
-});
-
-undoButton.addEventListener("click", function() {
-  if(lines.length > 0) {
-    const line = lines.pop(); //Remove last line from lines
-    if (line) {
-      redoLines.push(line); //Add erased line to redo
-      canvas.dispatchEvent(drawingChanged);
-    }
-  }
-});
-
-redoButton.addEventListener("click", function() {
-  if (redoLines.length > 0) {
-    const line = redoLines.pop(); //Remove most current line from redo
-    if (line) {
-      lines.push(line); //Add to lines to be redrawn
-      canvas.dispatchEvent(drawingChanged);
-    }
-  }
-});
-
-//Change line width when button is clicked
-lineWidthButton.addEventListener("click", function() {
-  emojiCmd = undefined;
-  emojiSelected = false;
-  if (lineThickness == THIN_LINE) {lineThickness = THICK_LINE;} 
-  else {lineThickness = THIN_LINE;}
-  lineWidthButton.innerText = `Line Width: ${lineThickness}`;
-});
-
-emojiButton.addEventListener("click", function() {
-  currEmoji = prompt("Custom sticker text", EMPTY_STR); //Select custom string
-  emojiSelected = true;
-  emojis.push({"emoji": currEmoji!, "button": null}); //Add custom emoji button
-  setButtons();
-});
-
-exportButton.addEventListener("click", function() {
-  const exportCanvas = document.createElement("canvas");
-  exportCanvas.width = EXPORT_WIDTH;
-  exportCanvas.height = EXPORT_HEIGHT;
-  const exportctx = exportCanvas.getContext("2d")!;
-  exportctx.scale(exportCanvas.width/canvas.width, exportCanvas.height/canvas.height);
-
-  redraw(exportctx);
-
-  const anchor = document.createElement("a");
-  anchor.href = canvas.toDataURL("image/png");
-  anchor.download = "sketchpad.png";
-  anchor.click();
-});
-
-//Random color code found at: https://stackoverflow.com/a/74280677
-lineColorButton.addEventListener("click", function() {
-  color = "#"+Math.floor(Math.random()*16777215).toString(16);
-  lineColorButton.style.backgroundColor = color;
-  ctx.strokeStyle = color;
-});
 
 //Helper function to redraw the canvas and cursor
 function redraw(ctx: CanvasRenderingContext2D) {
